@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { summarizeNote } from "../api/openai-api";
+import { summarizeNote } from "../openai-api";
 
 type Note = {
     id: string;
