@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { summarizeNote } from "../openai-api";
+import { generateTags, summarizeNote } from "../openai-api";
 
 type Note = {
     id: string;
@@ -17,7 +17,7 @@ export const NoteEditor = () => {
     }
 
     const handleGenerateTags = (content: string, index: number) => {
-        summarizeNote(content).then((tags) => {
+        generateTags(content).then((tags) => {
             const updatedList = [...list];
             const generatedTags = tags.split(',').map(tag => tag.trim());
             updatedList[index].tags = generatedTags;
