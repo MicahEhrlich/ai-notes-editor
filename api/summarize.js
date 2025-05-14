@@ -1,11 +1,10 @@
-import { type VercelRequest, type VercelResponse } from '@vercel/node';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*'); // Or use your frontend domain instead of '*'
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -29,8 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
-                { role: 'system', content: 'You are a helpful assistant.' },
-                { role: 'user', content: `Give me 3 relevant tags for the following note:\n\n${content}` }
+                { role: 'system', content: 'You are a helpful assistant that summarizes notes.' },
+                { role: 'user', content: `Summarize the following note:\n\n${content}` }
             ]
         });
 
