@@ -29,7 +29,7 @@ export default async function handler(req, res) {
             model: 'gpt-3.5-turbo',
             messages: [
                 { role: 'system', content: 'You are a helpful assistant.' },
-                { role: 'user', content: `Give me 3 relevant tags for the following note:\n\n${content}` }
+                { role: 'user', content: `Give me 3 relevant tags for the following note and write them down split by ',':\n\n${content}` }
             ]
         });
 

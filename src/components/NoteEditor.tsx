@@ -75,7 +75,13 @@ export const NoteEditor = () => {
                                 </div>
                             </div>
                             <div className="flex flex-auto items-baseline gap-2">
-                                <p className="w-180 flex flex-row items-baseline justify-center text-sm">{item.tags}</p>
+                                {
+                                    item.tags && item.tags.length > 0 ? (
+                                        item.tags.map((tag, tagIndex) => (
+                                            <p key={tagIndex} className="w-180 flex flex-row items-baseline justify-center text-sm rounded-md hover:bg-sky-100 bg-sky-300">{tag}</p>
+                                        ))
+                                    ) : null
+                                }
                                 <button className="w-40 text-sm" onClick={() => handleGenerateTags(item.content, index)}>Generate Tags</button>
                             </div>
                         </div>
