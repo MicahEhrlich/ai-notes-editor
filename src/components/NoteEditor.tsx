@@ -1,12 +1,8 @@
 import { useState } from "react";
 import { generateTags, summarizeNote } from "../openai-api";
+import type { Note } from "../types/types";
+import { NoteItem } from "./NoteItem";
 
-type Note = {
-    id: string;
-    content: string;
-    tags?: string[];
-    createdAt: Date;
-};
 
 export const NoteEditor = () => {
     const [list, setList] = useState<Note[]>([]);
@@ -24,7 +20,7 @@ export const NoteEditor = () => {
             setList(updatedList);
         }).catch((error) => {
             console.error("Error generating tags:", error);
-        });   
+        });
     }
 
     const handleSummaryChange = (content: string, index: number) => {
@@ -65,26 +61,13 @@ export const NoteEditor = () => {
             {
                 list.map((item, index) => {
                     return (
-                        <div className="flex flex-col gap-2 hover:bg-sky-700 p-2 rounded-md" key={item.id}>
-                            <div className="flex flex-row items-baseline gap-4" key={index}>
-                                <p className="w-32 flex-auto text-xs">{item.createdAt.toLocaleString()}</p>
-                                <h2 className="w-128 flex-auto text-xl text-left">{item.content}</h2>
-                                <div className="w-64 flex flex-row items-baseline gap-2">
-                                    <button onClick={() => handleSummaryChange(item.content, index)}>Summarize</button>
-                                    <button onClick={() => handleDeleteNote(index)}>Delete</button>
-                                </div>
-                            </div>
-                            <div className="flex flex-auto items-baseline gap-2">
-                                {
-                                    item.tags && item.tags.length > 0 ? (
-                                        item.tags.map((tag, tagIndex) => (
-                                            <p key={tagIndex} className="w-180 flex flex-row items-baseline justify-center text-sm rounded-md hover:bg-sky-100 bg-sky-300">{tag}</p>
-                                        ))
-                                    ) : null
-                                }
-                                <button className="w-40 text-sm" onClick={() => handleGenerateTags(item.content, index)}>Generate Tags</button>
-                            </div>
-                        </div>
+                        <NoteItem
+                            note={item}
+                            index={index}
+                            handleGenerateTags={handleGenerateTags}
+                            handleSummaryChange={handleSummaryChange}
+                            handleDeleteNote={handleDeleteNote}
+                        />
                     )
                 })
             }
