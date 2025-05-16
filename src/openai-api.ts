@@ -17,6 +17,12 @@ export const summarizeNote = async (content: string): Promise<string> => {
     });
   
     const data = await res.json();
+    if (typeof data.summary === 'string') {
+      const idx = data.summary.indexOf(':');
+      if (idx !== -1) {
+        data.summary = data.summary.slice(idx + 1).trim();
+      }
+    }
     return data.summary;
   };
   
