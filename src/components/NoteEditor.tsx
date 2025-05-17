@@ -83,7 +83,7 @@ export const NoteEditor = () => {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen gap-4 w-full md:h-full">
+        <div className="flex flex-col items-center justify-center h-screen gap-4 w-full md:h-full m-auto md:max-w-2xl">
             <div className="w-full max-w-xl bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg p-6 mb-4 flex flex-col items-center">
                 <h1 className="text-2xl font-bold mb-4 text-blue-800 tracking-tight">
                     Note Editor
