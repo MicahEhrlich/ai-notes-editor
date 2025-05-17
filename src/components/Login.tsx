@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getBearerToken } from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -8,6 +9,9 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const setToken = useUserStore(state => state.setToken);
     const setUser = useUserStore(state => state.setUsername);
+    const loading = useUserStore(state => state.loading);
+    const setLoading = useUserStore(state => state.setLoading);
+    const navigate = useNavigate();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -15,16 +19,19 @@ const Login: React.FC = () => {
             setError('Please enter both username and password.');
             return;
         }
+        setLoading(true);
         getBearerToken(username, password)
             .then(token => {
                 localStorage.setItem('token', token);
                 setToken(token);
                 setUser(username);
-                window.location.href = '/notes';
+                navigate('/notes');
             })
             .catch(err => {
                 console.error('Login failed:', err);
                 setError('Invalid username or password.');
+            }).finally(() => {
+                setLoading(false);
             });
         setError('');
     };
@@ -37,6 +44,7 @@ const Login: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Username</label>
                         <input
+                            disabled={loading}
                             type="text"
                             value={username}
                             onChange={e => setUsername(e.target.value)}
@@ -47,6 +55,7 @@ const Login: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Password</label>
                         <input
+                            disabled={loading}
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
@@ -56,12 +65,19 @@ const Login: React.FC = () => {
                     </div>
                     {error && <div className="text-red-500 text-sm text-center">{error}</div>}
                     <button
+                        disabled={loading}
                         type="submit"
                         className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition"
                     >
                         Login
                     </button>
                 </form>
+                {loading && (
+                    <div className="text-gray-900 flex justify-center mt-4">loading...</div>
+                )}
+                <div className="mt-6 text-center">
+                    <p className="text-gray-600">Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Register</a></p>
+                </div>
             </div>
         </div>
     );

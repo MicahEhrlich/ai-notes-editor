@@ -5,7 +5,7 @@ export const Navbar = () => {
     const username = useUserStore(state => state.username);
     const logout = useUserStore(state => state.clearUser);
     return (
-        <nav className="flex justify-between items-center px-8 py-4 bg-white dark:bg-gray-900 border-b border-gray-200 mb-8 dark:border-gray-700 sticky top-0 z-50">
+        <nav className="flex justify-between items-center px-8 py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
             <div className="font-bold text-xl text-gray-900 dark:text-white">
                 AI Notes
             </div>
