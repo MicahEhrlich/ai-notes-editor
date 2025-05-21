@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { getBearerToken } from '../api/api';
+import { login } from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useNavigate } from 'react-router-dom';
+import { Loading } from './Loading';
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -9,6 +10,7 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const setToken = useUserStore(state => state.setToken);
     const setUser = useUserStore(state => state.setUsername);
+    const setUserId = useUserStore(state => state.setUserId);
     const loading = useUserStore(state => state.loading);
     const setLoading = useUserStore(state => state.setLoading);
     const navigate = useNavigate();
@@ -20,11 +22,11 @@ const Login: React.FC = () => {
             return;
         }
         setLoading(true);
-        getBearerToken(username, password)
-            .then(token => {
-                localStorage.setItem('token', token);
-                setToken(token);
-                setUser(username);
+        login(username, password)
+            .then(data => {
+                setToken(data.access_token);
+                setUser(data.username);
+                setUserId(data.user_id);
                 navigate('/notes');
             })
             .catch(err => {
@@ -73,7 +75,7 @@ const Login: React.FC = () => {
                     </button>
                 </form>
                 {loading && (
-                    <div className="text-gray-900 flex justify-center mt-4">loading...</div>
+                    <Loading />
                 )}
                 <div className="mt-6 text-center">
                     <p className="text-gray-600">Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Register</a></p>

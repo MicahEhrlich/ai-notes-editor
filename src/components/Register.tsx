@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { Loading } from './Loading';
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
@@ -103,7 +104,7 @@ const Register: React.FC = () => {
                     </button>
                 </form>
                 {loading && (
-                    <div className="text-gray-900 flex justify-center mt-4">loading...</div>
+                    <Loading />
                 )}
                 {userRegistered && <div className="mt-6 text-center">
                     <p className="text-gray-600">User registered successfully</p>

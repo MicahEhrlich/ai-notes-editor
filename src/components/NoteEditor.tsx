@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
 import { generateTags, summarizeNote } from "../openai-api";
-import type { Note } from "../types/types";
 import { NoteItem } from "./NoteItem";
+import { deleteNote, getNotesByUser, saveNote } from "../api/api";
+import { useUserStore } from "../store/userStore";
+import type { Note, NoteToSave } from "../types/types";
 
+const CLEAR_TIMEOUT = 5000;
 
 export const NoteEditor = () => {
     const [list, setList] = useState<Note[]>([]);
     const [filterdList, setFilteredList] = useState<Note[]>([]);
     const [search, setSearch] = useState<string>('');
     const [note, setNote] = useState<string>('');
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
+    const userId = useUserStore(state => state.userId);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -18,23 +24,43 @@ export const NoteEditor = () => {
         };
         window.addEventListener('keydown', handleKeyDown);
 
-        const storedList = localStorage.getItem('notes');
-        if (storedList) {
-            setList(JSON.parse(storedList));
-        }
+        const fetchNotes = async () => {
+            try {
+                const notes = await getNotesByUser(userId);
+                setList(notes);
+                setFilteredList(notes);
+            } catch (error) {
+                console.error("Error fetching notes:", error);
+            }
+        };
+        fetchNotes();
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('notes', JSON.stringify(list));
-    }, [list]);
-
-    useEffect(() => {
         const filtered = search.length ? list.filter(item => item.content.toLowerCase().includes(search.toLowerCase())) : list;
         setFilteredList(filtered);
     }, [search, list]);
+
+    useEffect(() => {
+        if (error) {
+            setTimeout(() => {
+                setError('');
+            }, CLEAR_TIMEOUT);
+        }
+        if (success) {
+            setTimeout(() => {
+                setSuccess('');
+            }, CLEAR_TIMEOUT);
+        }
+    }, [error, success]);
+
+    const clearMessages = () => {
+        setSuccess('');
+        setError('');
+    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNote(e.target.value);
@@ -46,44 +72,61 @@ export const NoteEditor = () => {
     }
 
     const handleGenerateTags = (content: string, index: number) => {
+        clearMessages();
         generateTags(content).then((tags) => {
             const updatedList = [...list];
             const generatedTags = tags.split(',').map(tag => tag.trim());
             updatedList[index].tags = generatedTags;
             setList(updatedList);
         }).catch((error) => {
-            console.error("Error generating tags:", error);
+            setError("Error generating tags:" + error);
         });
     }
 
     const handleSummaryChange = (content: string, index: number) => {
+        clearMessages();
         summarizeNote(content).then((content) => {
             const updatedList = [...list];
             updatedList[index].content = content;
             setList(updatedList);
         }).catch((error) => {
-            console.error("Error summarizing note:", error);
+            setError("Error summarizing note:" + error);
         });
     }
 
-    const handleDeleteNote = (index: number) => {
-        const updatedList = [...list];
-        updatedList.splice(index, 1);
-        setList(updatedList);
+    const handleDeleteNote = async (index: number) => {
+        clearMessages();
+        await deleteNote(list[index].id).then(() => {
+            setSuccess("Note deleted successfully");
+        }).catch((error) => {
+            setError(`Error deleting note:" ${error}`);
+        }).finally(() => {
+            const updatedList = [...list];
+            updatedList.splice(index, 1);
+            setList(updatedList);
+            setNote('');
+        })
     }
 
-    const addNote = () => {
-        const newNote: Note = {
-            id: Math.random().toString(36).substring(2, 15),
+    const addNote = async () => {
+        clearMessages();
+        const noteToAdd: NoteToSave = {
+            owner_id: userId,
             content: note,
-            createdAt: new Date(),
+            tags: [],
         };
-        setList([...list, newNote]);
-        setNote('');
+        await saveNote(noteToAdd, userId).then((newNote) => {
+            setList([...list, newNote]);
+            setSuccess("Note added successfully");
+        }).catch((error) => {
+            setError(`Error saving note: ${error}`);
+        }).finally(() => {
+            setNote('');
+        });
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen gap-4 mt-8 w-full md:h-full m-auto md:max-w-2xl">
+        <div className="flex flex-col items-center justify-center gap-4 mt-8 w-full md:h-full m-auto md:max-w-2xl">
             <div className="w-full max-w-xl bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl shadow-lg p-6 mb-4 flex flex-col items-center">
                 <h1 className="text-2xl font-bold mb-4 text-blue-800 tracking-tight">
                     Note Editor
@@ -96,6 +139,7 @@ export const NoteEditor = () => {
                         onChange={handleChange}
                         placeholder="Write a new note..."
                         maxLength={300}
+                        minLength={10}
                     />
                     <button
                         className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-semibold transition disabled:opacity-50"
@@ -107,6 +151,10 @@ export const NoteEditor = () => {
                     </button>
                 </div>
                 <div className="w-full text-right text-xs text-gray-400 mt-1">{note.length}/300</div>
+                <div className="text-green-600 font-semibold mt-2 min-h-[1.5em]">
+                    {success}
+                </div>
+                <div className="text-red-600 font-semibold mt-2 min-h-[1.5em]">{error}</div>
             </div>
             <div className="flex flex-col md:flex-row items-center gap-3 w-full mb-2">
                 <div className="flex flex-1 items-center gap-2 w-full">
@@ -148,7 +196,7 @@ export const NoteEditor = () => {
                             index={index}
                             handleGenerateTags={handleGenerateTags}
                             handleSummaryChange={handleSummaryChange}
-                            handleDeleteNote={handleDeleteNote}
+                            handleDeleteNote={() => handleDeleteNote(index)}
                             handleTagClick={handleTagClick}
                         />
                     )
