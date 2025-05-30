@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { login } from '../api/api';
-import { useUserStore } from '../store/userStore';
-import { useNavigate } from 'react-router-dom';
-import { Loading } from './Loading';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { login } from "../../api/api";
+import { useUserStore } from "../../store/userStore";
+import { Loading } from "../navigation/Loading";
+
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -12,7 +13,6 @@ const Login: React.FC = () => {
     const setUser = useUserStore(state => state.setUsername);
     const setUserId = useUserStore(state => state.setUserId);
     const loading = useUserStore(state => state.loading);
-    const setLoading = useUserStore(state => state.setLoading);
     const navigate = useNavigate();
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -21,7 +21,6 @@ const Login: React.FC = () => {
             setError('Please enter both username and password.');
             return;
         }
-        setLoading(true);
         login(username, password)
             .then(data => {
                 setToken(data.access_token);
@@ -32,9 +31,7 @@ const Login: React.FC = () => {
             .catch(err => {
                 console.error('Login failed:', err);
                 setError('Invalid username or password.');
-            }).finally(() => {
-                setLoading(false);
-            });
+            })
         setError('');
     };
 

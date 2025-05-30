@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { generateTags, summarizeNote } from "../openai-api";
+import { generateTags, summarizeNote } from "../../../openai-api";
 import { NoteItem } from "./NoteItem";
-import { deleteNote, getNotesByUser, saveNote } from "../api/api";
-import { useUserStore } from "../store/userStore";
-import type { Note, NoteToSave } from "../types/types";
+import { deleteNote, getNotesByUser, saveNote } from "../../../api/api";
+import { useUserStore } from "../../../store/userStore";
+import type { Note, NoteToSave } from "../../../types/types";
+import { Loading } from "../../navigation/Loading";
 
 const CLEAR_TIMEOUT = 5000;
 
@@ -14,6 +15,7 @@ export const NoteEditor = () => {
     const [note, setNote] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
+    const loading = useUserStore(state => state.loading);
     const userId = useUserStore(state => state.userId);
 
     useEffect(() => {
@@ -45,14 +47,9 @@ export const NoteEditor = () => {
     }, [search, list]);
 
     useEffect(() => {
-        if (error) {
+        if (error || success) {
             setTimeout(() => {
                 setError('');
-            }, CLEAR_TIMEOUT);
-        }
-        if (success) {
-            setTimeout(() => {
-                setSuccess('');
             }, CLEAR_TIMEOUT);
         }
     }, [error, success]);
@@ -92,6 +89,18 @@ export const NoteEditor = () => {
         }).catch((error) => {
             setError("Error summarizing note:" + error);
         });
+    }
+
+    const handleNoteContentChange = (content: string, index: number) => {
+        clearMessages();
+        const updatedList = [...list];
+        updatedList[index].content = content;
+        setList(updatedList);
+        // saveNote(updatedList[index], userId).then(() => {
+        //     setSuccess("Note updated successfully");
+        // }).catch((error) => {
+        //     setError(`Error updating note: ${error}`);
+        // });
     }
 
     const handleDeleteNote = async (index: number) => {
@@ -187,6 +196,9 @@ export const NoteEditor = () => {
                     </button>
                 )}
             </div>
+            {loading && (
+                <Loading />
+            )}
             {
                 filterdList.map((item, index) => {
                     return (
@@ -196,6 +208,7 @@ export const NoteEditor = () => {
                             index={index}
                             handleGenerateTags={handleGenerateTags}
                             handleSummaryChange={handleSummaryChange}
+                            handleNoteContentChange={handleNoteContentChange}
                             handleDeleteNote={() => handleDeleteNote(index)}
                             handleTagClick={handleTagClick}
                         />

@@ -1,6 +1,7 @@
 import axios from "axios";
 import instance from "./axios";
 import type { Note, NoteToSave } from "../types/types";
+import { parseNotes } from "../utils";
 
 // Vite exposes env variables on import.meta.env
 const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
@@ -88,6 +89,9 @@ export async function getNotesByUser(userId: number): Promise<Note[]> {
         });
         if (response.status !== 200) {
             throw new Error('Failed to fetch notes');
+        }
+        if (Array.isArray(response.data)) {
+            response.data = parseNotes(response);
         }
         return response.data as Note[];
     } catch (error) {

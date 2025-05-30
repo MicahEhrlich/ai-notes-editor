@@ -3,7 +3,7 @@ export type Note = {
     owner_id: string;
     content: string;
     tags?: string[];
-    createdAt: Date;
+    created_at: Date;
 };
 
 export type NoteToSave = {

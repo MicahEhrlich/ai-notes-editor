@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useUserStore } from "../store/userStore";
+import { useUserStore } from "../../store/userStore";
 
 export const Navbar = () => {
     const token = useUserStore(state => state.token)

@@ -7,8 +7,11 @@ const instance = axios.create({
   withCredentials: true, // if you're using cookies
 });
 
+const setLoading = useUserStore.getState().setLoading;
+
 instance.interceptors.request.use(
   config => {
+    setLoading(true);
     const token = useUserStore.getState().token;
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
@@ -17,13 +20,17 @@ instance.interceptors.request.use(
 );
 
 instance.interceptors.response.use(
-  response => response,
+  response => {
+    setLoading(false);
+    return response;
+  },
   error => {
     if (error.response && error.response.status === 401) {
       useUserStore.getState().clearUser?.();
     }
+    setLoading(false);
     return Promise.reject(error);
-  }
+  },
 );
 
 export default instance;

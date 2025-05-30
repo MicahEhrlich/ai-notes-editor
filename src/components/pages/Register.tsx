@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../api/api';
-import { useUserStore } from '../store/userStore';
-import { Loading } from './Loading';
+import { registerUser } from '../../api/api';
+import { useUserStore } from '../../store/userStore';
+import { Loading } from '../navigation/Loading';
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
@@ -13,7 +13,6 @@ const Register: React.FC = () => {
     const [error, setError] = useState('');
     const [userRegistered, setUserRegistered] = useState(false);
     const loading = useUserStore(state => state.loading);
-    const setLoading = useUserStore(state => state.setLoading);
     const navigate = useNavigate();
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -32,7 +31,6 @@ const Register: React.FC = () => {
         }
         else {
             setError('');
-            setLoading(true);
             registerUser(username, password)
                 .then(() => {
                     setUserRegistered(true);
@@ -42,9 +40,7 @@ const Register: React.FC = () => {
                 })
                 .catch((err) => {
                     setError(err?.message || 'Registration failed. Please try again.');
-                }).finally(() => {
-                    setLoading(false);
-                });
+                })
             setUsername('');
             setPassword('');
             setConfirmPassword('');

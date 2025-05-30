@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom"
-import { useUserStore } from "../store/userStore"
+import { useUserStore } from "../../store/userStore";
 
 export const UnprotectedRoute = () => {
     const token = useUserStore(state => state.token)
