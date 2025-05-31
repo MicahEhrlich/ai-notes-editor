@@ -82,6 +82,27 @@ export async function saveNote(note: NoteToSave, user_id: number): Promise<Note>
     }
 }
 
+
+export async function updateNote(noteId: number, note: NoteToSave, user_id: number): Promise<Note> {
+    try {
+        const response = await instance.put(
+            `${baseUrl}/notes/${noteId}`,
+            {
+                content: note.content,
+                tags: JSON.stringify(note.tags),
+                owner_id: user_id,
+            },
+        );
+        if (response.status !== 200) {
+            throw new Error('Failed to update note');
+        }
+        return response.data as Note;
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : String(error));
+    }
+}
+
+
 export async function getNotesByUser(userId: number): Promise<Note[]> {
     try {
         const response = await instance.get(`${baseUrl}/notes`, {
@@ -99,9 +120,22 @@ export async function getNotesByUser(userId: number): Promise<Note[]> {
     }
 }
 
+
 export async function deleteNote(noteId: number): Promise<void> {
     try {
         const response = await instance.delete(`${baseUrl}/notes/${noteId}`);
+        if (response.status !== 204) {
+            throw new Error('Failed to delete note');
+        }
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : String(error));
+    }
+}
+
+
+export async function deleteAllNotes(): Promise<void> {
+    try {
+        const response = await instance.delete(`${baseUrl}/notes`);
         if (response.status !== 204) {
             throw new Error('Failed to delete note');
         }

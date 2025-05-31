@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Note } from "../../../types/types";
+import { CLEAR_TIMEOUT } from "./NoteEditor";
+import { useUserStore } from "../../../store/userStore";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit, faTrash, faSave } from "@fortawesome/free-solid-svg-icons";
 
 type NoteProps = {
     note: Note;
     index: number;
     handleGenerateTags: (content: string, index: number) => void;
     handleSummaryChange: (content: string, index: number) => void;
-    handleNoteContentChange: (content: string, index: number) => void;
+    handleNoteContentChange: (content: string, tags: string[], index: number, showNoteUpdateStatus: (success: boolean, text: string) => void) => void;
     handleDeleteNote: (index: number) => void;
     handleTagClick: (tag: string) => void;
 };
@@ -14,12 +18,33 @@ type NoteProps = {
 export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange, handleNoteContentChange, handleDeleteNote, handleTagClick }: NoteProps) => {
     const [content, setContent] = useState(note.content);
     const [canEdit, setCanEdit] = useState(false);
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
+    const loading = useUserStore(state => state.loading);
+
+    useEffect(() => {
+        if (error || success) {
+            setTimeout(() => {
+                setError('');
+            }, CLEAR_TIMEOUT);
+        }
+    }, [error, success]);
 
     const toggleEdit = () => {
         setCanEdit(!canEdit);
     }
 
-    const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleNoteUpdateStatus = (success: boolean, text: string) => {
+        if (success) {
+            setSuccess(text);
+            setError('');
+        } else {
+            setError(text);
+            setSuccess('');
+        }
+    }
+
+    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setContent(e.target.value);
     };
 
@@ -31,13 +56,15 @@ export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange,
                 </div>
                 <div className="flex-1 w-full">
                     <div
-                        className={`border border-gray-300 rounded-xl px-3 py-2 md:px-4 md:py-3 ${!canEdit ? "bg-gray-100" : "bg-white/80"
+                        className={`border border-gray-300 rounded-xl px-3 py-2 md:px-3 md:py-3 ${!canEdit ? "bg-gray-100" : "bg-white/80"
                             }`}
                     >
-                        <input
-                            type="text"
+                        <textarea
+                            rows={7}
+                            cols={38}
+                            placeholder="Note content"
                             disabled={!canEdit}
-                            className="text-base text-gray-900 font-semibold whitespace-pre-line break-words bg-transparent"
+                            className="resize-none text-base text-gray-900 font-semibold whitespace-pre-line break-words bg-transparent"
                             onChange={handleContentChange}
                             value={content}
                         />
@@ -46,32 +73,42 @@ export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange,
                 <div className="flex flex-row md:flex-col gap-2 shrink-0 mt-2 md:mt-0">
                     <button
                         className={`flex-1 md:flex-none px-3 py-1.5 text-sm rounded-lg transition font-medium ${canEdit
-                                ? "bg-gray-400 hover:bg-gray-500 text-white"
-                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                            ? "bg-gray-400 hover:bg-gray-500 text-white"
+                            : "bg-blue-600 hover:bg-blue-700 text-white"
                             }`}
                         onClick={toggleEdit}
                     >
-                        Edit
+                        <FontAwesomeIcon icon={faEdit} />
+                        <span className="hidden md:inline ml-2">Edit</span>
                     </button>
                     <button
                         className="flex-1 md:flex-none px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                        onClick={() => handleSummaryChange(note.content, index)}
+                        onClick={() => handleSummaryChange(content, index)}
                     >
                         Summarize
                     </button>
                     <button
                         className="flex-1 md:flex-none px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                        onClick={() => handleNoteContentChange(note.content, index)}
+                        onClick={() => handleNoteContentChange(content, note.tags ?? [], index, handleNoteUpdateStatus)}
+                        disabled={canEdit || loading}
                     >
-                        Save
+                        <FontAwesomeIcon icon={faSave} />
+                        <span className="hidden md:inline ml-2">Save</span>
                     </button>
                     <button
                         className="flex-1 md:flex-none px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium"
                         onClick={() => handleDeleteNote(index)}
                     >
-                        Delete
+                        <FontAwesomeIcon icon={faTrash} />
+                        <span className="hidden md:inline ml-2">Delete</span>
                     </button>
                 </div>
+            </div>
+            <div>
+                <div className="text-green-600 font-semibold mt-2 min-h-[1.5em]">
+                    {success}
+                </div>
+                <div className="text-red-600 font-semibold mt-2 min-h-[1.5em]">{error}</div>
             </div>
             <div className="flex flex-wrap md:items-center gap-2">
                 {note.tags && note.tags.length > 0 && (

@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { generateTags, summarizeNote } from "../../../openai-api";
 import { NoteItem } from "./NoteItem";
-import { deleteNote, getNotesByUser, saveNote } from "../../../api/api";
+import { deleteAllNotes, deleteNote, getNotesByUser, saveNote, updateNote } from "../../../api/api";
 import { useUserStore } from "../../../store/userStore";
 import type { Note, NoteToSave } from "../../../types/types";
 import { Loading } from "../../navigation/Loading";
+import { ConfirmDialog } from "../../dialogs/ConfirmDialog";
 
-const CLEAR_TIMEOUT = 5000;
+export const CLEAR_TIMEOUT = 5000;
 
 export const NoteEditor = () => {
     const [list, setList] = useState<Note[]>([]);
@@ -15,6 +18,7 @@ export const NoteEditor = () => {
     const [note, setNote] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
+    const [showDialog, setShowDialog] = useState<boolean>(false);
     const loading = useUserStore(state => state.loading);
     const userId = useUserStore(state => state.userId);
 
@@ -91,16 +95,22 @@ export const NoteEditor = () => {
         });
     }
 
-    const handleNoteContentChange = (content: string, index: number) => {
+    const handleNoteContentChange = (content: string, tags: string[], index: number, showNoteUpdateStatus: (success: boolean, text: string) => void) => {
         clearMessages();
         const updatedList = [...list];
         updatedList[index].content = content;
+        updatedList[index].tags = tags;
         setList(updatedList);
-        // saveNote(updatedList[index], userId).then(() => {
-        //     setSuccess("Note updated successfully");
-        // }).catch((error) => {
-        //     setError(`Error updating note: ${error}`);
-        // });
+        const noteToUpdate: NoteToSave = {
+            owner_id: userId,
+            content,
+            tags: tags || [],
+        };
+        updateNote(updatedList[index].id, noteToUpdate, userId).then(() => {
+            showNoteUpdateStatus(true, "Note updated successfully");
+        }).catch((error) => {
+            showNoteUpdateStatus(false, `Error updating note: ${error}`);
+        });
     }
 
     const handleDeleteNote = async (index: number) => {
@@ -115,6 +125,18 @@ export const NoteEditor = () => {
             setList(updatedList);
             setNote('');
         })
+    }
+
+    const handleDeleteAllNotes = async () => {
+        clearMessages();
+        setShowDialog(false);
+        await deleteAllNotes().then(() => {
+            setSuccess("All notes deleted successfully");
+            setList([]);
+            setFilteredList([]);
+        }).catch((error) => {
+            setError(`Error deleting all notes: ${error}`);
+        });
     }
 
     const addNote = async () => {
@@ -168,7 +190,7 @@ export const NoteEditor = () => {
             <div className="flex flex-col md:flex-row items-center gap-3 w-full mb-2">
                 <div className="flex flex-1 items-center gap-2 w-full">
                     <input
-                        type="text"
+                        type="search"
                         className="flex-1 px-4 py-2 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm bg-white text-gray-900"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -185,17 +207,23 @@ export const NoteEditor = () => {
             <div className="flex justify-end w-full mb-2">
                 {list.length > 0 && (
                     <button
-                        onClick={() => setList([])}
+                        onClick={() => setShowDialog(true)}
                         className="flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition w-full md:w-auto shadow border-2 border-red-700"
                         title="Delete all notes"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <FontAwesomeIcon icon={faTimes} />
                         Delete All Notes
                     </button>
                 )}
             </div>
+            {showDialog && (
+                <ConfirmDialog 
+                    onClose={() => setShowDialog(false)}
+                    onConfirm={handleDeleteAllNotes}
+                    title="Confirm Delete All Notes"
+                    message="Are you sure you want to delete all notes? This action cannot be undone."
+                />
+            )}
             {loading && (
                 <Loading />
             )}
