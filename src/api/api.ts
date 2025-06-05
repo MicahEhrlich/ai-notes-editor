@@ -18,6 +18,10 @@ export interface LoginResponse extends AuthResponse {
     user_id: number;
 }
 
+export interface RegisterResponse {
+    message: string;
+}
+
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
     try {
@@ -41,14 +45,16 @@ export async function login(username: string, password: string): Promise<LoginRe
 }
 
 
-export async function registerUser(username: string, password: string): Promise<void> {
+export async function registerUser(username: string, password: string): Promise<RegisterResponse> {
     try {
         const response = await instance.post(`${baseUrl}/register`, {
             username,
             password,
         });
         if (response.status === 201) {
-            return;
+            return response.data;
+        } else {
+            throw new Error('Registration failed');
         }
     } catch (error: unknown) {
         if (error instanceof Error) {
@@ -63,14 +69,13 @@ export async function registerUser(username: string, password: string): Promise<
 }
 
 
-export async function saveNote(note: NoteToSave, user_id: number): Promise<Note> {
+export async function saveNote(note: NoteToSave): Promise<Note> {
     try {
         const response = await instance.post(
             `${baseUrl}/notes`,
             {
                 content: note.content,
-                tags: JSON.stringify(note.tags),
-                owner_id: user_id,
+                owner_id: note.owner_id,
             },
         );
         if (response.status !== 201) {
@@ -85,11 +90,13 @@ export async function saveNote(note: NoteToSave, user_id: number): Promise<Note>
 
 export async function updateNote(noteId: number, note: NoteToSave, user_id: number): Promise<Note> {
     try {
+        const tags = note.tags ? JSON.stringify(note.tags) : '[]';
+        const parsedTags = JSON.parse(tags);
         const response = await instance.put(
             `${baseUrl}/notes/${noteId}`,
             {
                 content: note.content,
-                tags: JSON.stringify(note.tags),
+                tags: parsedTags,
                 owner_id: user_id,
             },
         );

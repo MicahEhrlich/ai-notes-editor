@@ -1,52 +1,37 @@
 import { useEffect, useState } from "react";
 import type { Note } from "../../../types/types";
-import { CLEAR_TIMEOUT } from "./NoteEditor";
 import { useUserStore } from "../../../store/userStore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash, faSave } from "@fortawesome/free-solid-svg-icons";
+import React from "react";
 
 type NoteProps = {
     note: Note;
     index: number;
     handleGenerateTags: (content: string, index: number) => void;
     handleSummaryChange: (content: string, index: number) => void;
-    handleNoteContentChange: (content: string, tags: string[], index: number, showNoteUpdateStatus: (success: boolean, text: string) => void) => void;
+    handleNoteContentChange: (content: string, tags: string[], index: number) => void;
     handleDeleteNote: (index: number) => void;
     handleTagClick: (tag: string) => void;
 };
 
-export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange, handleNoteContentChange, handleDeleteNote, handleTagClick }: NoteProps) => {
+const NoteItemComponent = ({ note, index, handleGenerateTags, handleSummaryChange, handleNoteContentChange, handleDeleteNote, handleTagClick }: NoteProps) => {
+    console.log("Rendering NoteItemComponent for note:", note.id, note.content);
     const [content, setContent] = useState(note.content);
     const [canEdit, setCanEdit] = useState(false);
-    const [error, setError] = useState<string>('');
-    const [success, setSuccess] = useState<string>('');
     const loading = useUserStore(state => state.loading);
-
-    useEffect(() => {
-        if (error || success) {
-            setTimeout(() => {
-                setError('');
-            }, CLEAR_TIMEOUT);
-        }
-    }, [error, success]);
 
     const toggleEdit = () => {
         setCanEdit(!canEdit);
     }
 
-    const handleNoteUpdateStatus = (success: boolean, text: string) => {
-        if (success) {
-            setSuccess(text);
-            setError('');
-        } else {
-            setError(text);
-            setSuccess('');
-        }
-    }
-
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setContent(e.target.value);
     };
+
+    useEffect(() => {
+        setContent(note.content);
+    }, [note.content]);
 
     return (
         <div className="w-full max-w-full md:w-[720px] flex flex-col gap-4 p-4 md:p-6 rounded-2xl border border-gray-200 bg-gradient-to-br from-[#f8fafc] to-[#e0e7ef] shadow transition-all duration-200" key={note.id}>
@@ -89,7 +74,7 @@ export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange,
                     </button>
                     <button
                         className="flex-1 md:flex-none px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                        onClick={() => handleNoteContentChange(content, note.tags ?? [], index, handleNoteUpdateStatus)}
+                        onClick={() => handleNoteContentChange(content, note.tags ?? [], index)}
                         disabled={canEdit || loading}
                     >
                         <FontAwesomeIcon icon={faSave} />
@@ -103,12 +88,6 @@ export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange,
                         <span className="hidden md:inline ml-2">Delete</span>
                     </button>
                 </div>
-            </div>
-            <div>
-                <div className="text-green-600 font-semibold mt-2 min-h-[1.5em]">
-                    {success}
-                </div>
-                <div className="text-red-600 font-semibold mt-2 min-h-[1.5em]">{error}</div>
             </div>
             <div className="flex flex-wrap md:items-center gap-2">
                 {note.tags && note.tags.length > 0 && (
@@ -132,3 +111,5 @@ export const NoteItem = ({ note, index, handleGenerateTags, handleSummaryChange,
         </div>
     );
 }
+
+export const NoteItem = React.memo(NoteItemComponent);

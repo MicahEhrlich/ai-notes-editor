@@ -1,15 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../../store/userStore";
+// import { useNoteStore } from "../../store/noteStore";
 
 export const Navbar = () => {
     const token = useUserStore(state => state.token)
     const username = useUserStore(state => state.username);
     const logout = useUserStore(state => state.clearUser);
+    // const clearNotes = useNoteStore(state => state.clearNotes);
 
     const navigate = useNavigate();
 
     const handleLogout = () => {
         logout();
+        // clearNotes();
+        navigate("/login");
     }
 
     return (

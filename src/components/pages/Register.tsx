@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../../api/api';
 import { useUserStore } from '../../store/userStore';
-import { Loading } from '../navigation/Loading';
+import { registerUserMiddleware } from '../../service/register';
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
@@ -11,9 +10,20 @@ const Register: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
-    const [userRegistered, setUserRegistered] = useState(false);
     const loading = useUserStore(state => state.loading);
     const navigate = useNavigate();
+
+    const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setError('');
+        if (name === 'username') {
+            setUsername(value);
+        } else if (name === 'password') {
+            setPassword(value);
+        } else if (name === 'confirmPassword') {
+            setConfirmPassword(value);
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,29 +31,21 @@ const Register: React.FC = () => {
             setError('Password must be at least 8 characters, include uppercase, lowercase, and a number.');
             return;
         }
-        if (password !== confirmPassword) {
+        else if (password !== confirmPassword) {
             setError('Passwords do not match.');
             return;
         }
-        if (!username || !password) {
+        else if (!username || !password) {
             setError('Please enter both username and password.');
             return;
         }
         else {
             setError('');
-            registerUser(username, password)
-                .then(() => {
-                    setUserRegistered(true);
-                    setTimeout(() => {
-                        navigate('/login');
-                    }, 2000);
-                })
-                .catch((err) => {
-                    setError(err?.message || 'Registration failed. Please try again.');
-                })
-            setUsername('');
-            setPassword('');
-            setConfirmPassword('');
+            registerUserMiddleware(username, password, navigate).then(() => {
+                setUsername('');
+                setPassword('');
+                setConfirmPassword('');
+            })
         }
     };
 
@@ -55,11 +57,12 @@ const Register: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Username</label>
                         <input
+                            name='username'
                             disabled={loading}
                             type="text"
                             value={username}
                             required
-                            onChange={e => setUsername(e.target.value)}
+                            onChange={handleFieldChange}
                             autoComplete="username"
                             className="text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                         />
@@ -67,11 +70,12 @@ const Register: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Password</label>
                         <input
+                            name='password'
                             disabled={loading}
                             type="password"
                             value={password}
                             required
-                            onChange={e => setPassword(e.target.value)}
+                            onChange={handleFieldChange}
                             autoComplete="new-password"
                             className="text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                         />
@@ -79,11 +83,12 @@ const Register: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Confirm Password</label>
                         <input
+                            name='confirmPassword'
                             disabled={loading}
                             type="password"
                             value={confirmPassword}
                             required
-                            onChange={e => setConfirmPassword(e.target.value)}
+                            onChange={handleFieldChange}
                             autoComplete="new-password"
                             className="text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                         />
@@ -99,12 +104,6 @@ const Register: React.FC = () => {
                         Register
                     </button>
                 </form>
-                {loading && (
-                    <Loading />
-                )}
-                {userRegistered && <div className="mt-6 text-center">
-                    <p className="text-gray-600">User registered successfully</p>
-                </div>}
             </div>
         </div>
     );

@@ -14,6 +14,7 @@ export const ConfirmDialog = ({
     message,
 }: ConfirmDialogProps) => {
     useEffect(() => {
+        // Prevent background scrolling when dialog is open
         const originalOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
         return () => {
@@ -22,7 +23,7 @@ export const ConfirmDialog = ({
     }, []);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center  bg-opacity-50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-opacity-50 backdrop-blur-sm z-50">
             <div className="text-base text-gray-900 rounded-lg shadow-lg p-6 w-full max-w-md bg-gradient-to-br from-[#f8fafc] to-[#e0e7ef] shadow transition-all duration-200">
                 <h2 className="text-xl font-bold mb-4">{title}</h2>
                 <p className="mb-4">{message}</p>

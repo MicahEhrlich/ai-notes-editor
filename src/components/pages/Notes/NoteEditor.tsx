@@ -1,43 +1,38 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
-import { generateTags, summarizeNote } from "../../../openai-api";
 import { NoteItem } from "./NoteItem";
-import { deleteAllNotes, deleteNote, getNotesByUser, saveNote, updateNote } from "../../../api/api";
 import { useUserStore } from "../../../store/userStore";
-import type { Note, NoteToSave } from "../../../types/types";
-import { Loading } from "../../navigation/Loading";
 import { ConfirmDialog } from "../../dialogs/ConfirmDialog";
-
-export const CLEAR_TIMEOUT = 5000;
+import type { Note } from "../../../types/types";
+import { addNewNoteMiddleware, deleteAllNotesMiddleware, deleteNoteMiddleware, generateTagsMiddleware, getNotesByUserMiddleware, summarizeNoteContentMiddleware, updateNoteMiddleware } from "../../../service/notes";
+import { useMemo } from "react";
 
 export const NoteEditor = () => {
     const [list, setList] = useState<Note[]>([]);
-    const [filterdList, setFilteredList] = useState<Note[]>([]);
+    const [, setFilteredList] = useState<Note[]>([]);
     const [search, setSearch] = useState<string>('');
-    const [note, setNote] = useState<string>('');
-    const [error, setError] = useState<string>('');
-    const [success, setSuccess] = useState<string>('');
+    const [content, setContent] = useState<string>('');
     const [showDialog, setShowDialog] = useState<boolean>(false);
-    const loading = useUserStore(state => state.loading);
     const userId = useUserStore(state => state.userId);
+
+    const memoizedFilteredList = useMemo(() => {
+        console.log("Memoized filtering notes with search:", search);
+        return search.length
+            ? list.filter(item => item.content.toLowerCase().includes(search.toLowerCase()))
+            : list;
+    }, [search, list]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Enter') {
-                addNote();
+                addNewNote();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
 
-        const fetchNotes = async () => {
-            try {
-                const notes = await getNotesByUser(userId);
-                setList(notes);
-                setFilteredList(notes);
-            } catch (error) {
-                console.error("Error fetching notes:", error);
-            }
+        const fetchNotes = () => {
+            getNotesByUserMiddleware(userId, setList)
         };
         fetchNotes();
         return () => {
@@ -46,25 +41,12 @@ export const NoteEditor = () => {
     }, []);
 
     useEffect(() => {
-        const filtered = search.length ? list.filter(item => item.content.toLowerCase().includes(search.toLowerCase())) : list;
-        setFilteredList(filtered);
-    }, [search, list]);
+        console.log("Setting filtered list based on memoizedFilteredList:", memoizedFilteredList);
+    }, [memoizedFilteredList]);
 
-    useEffect(() => {
-        if (error || success) {
-            setTimeout(() => {
-                setError('');
-            }, CLEAR_TIMEOUT);
-        }
-    }, [error, success]);
-
-    const clearMessages = () => {
-        setSuccess('');
-        setError('');
-    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setNote(e.target.value);
+        setContent(e.target.value);
     }
 
     const handleTagClick = (tag: string) => {
@@ -73,87 +55,36 @@ export const NoteEditor = () => {
     }
 
     const handleGenerateTags = (content: string, index: number) => {
-        clearMessages();
-        generateTags(content).then((tags) => {
-            const updatedList = [...list];
-            const generatedTags = tags.split(',').map(tag => tag.trim());
-            updatedList[index].tags = generatedTags;
-            setList(updatedList);
-        }).catch((error) => {
-            setError("Error generating tags:" + error);
-        });
+        generateTagsMiddleware(content, index, list, setList);
     }
 
-    const handleSummaryChange = (content: string, index: number) => {
-        clearMessages();
-        summarizeNote(content).then((content) => {
-            const updatedList = [...list];
-            updatedList[index].content = content;
-            setList(updatedList);
-        }).catch((error) => {
-            setError("Error summarizing note:" + error);
-        });
+    const handleSummaryChange =
+        (content: string, index: number) => {
+            summarizeNoteContentMiddleware(index, content, list, setList)
+        }
+
+    const handleChangeSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearch(e.target.value);
     }
 
-    const handleNoteContentChange = (content: string, tags: string[], index: number, showNoteUpdateStatus: (success: boolean, text: string) => void) => {
-        clearMessages();
-        const updatedList = [...list];
-        updatedList[index].content = content;
-        updatedList[index].tags = tags;
-        setList(updatedList);
-        const noteToUpdate: NoteToSave = {
-            owner_id: userId,
-            content,
-            tags: tags || [],
-        };
-        updateNote(updatedList[index].id, noteToUpdate, userId).then(() => {
-            showNoteUpdateStatus(true, "Note updated successfully");
-        }).catch((error) => {
-            showNoteUpdateStatus(false, `Error updating note: ${error}`);
-        });
+    const handleNoteContentChange = (content: string, tags: string[], index: number) => {
+        updateNoteMiddleware(index, content, tags, userId, setList, list);
     }
 
-    const handleDeleteNote = async (index: number) => {
-        clearMessages();
-        await deleteNote(list[index].id).then(() => {
-            setSuccess("Note deleted successfully");
-        }).catch((error) => {
-            setError(`Error deleting note:" ${error}`);
-        }).finally(() => {
-            const updatedList = [...list];
-            updatedList.splice(index, 1);
-            setList(updatedList);
-            setNote('');
+    const handleDeleteNote = (index: number) => {
+        deleteNoteMiddleware(index, list, setList).then(() => {
+            setContent('');
         })
     }
 
     const handleDeleteAllNotes = async () => {
-        clearMessages();
-        setShowDialog(false);
-        await deleteAllNotes().then(() => {
-            setSuccess("All notes deleted successfully");
-            setList([]);
-            setFilteredList([]);
-        }).catch((error) => {
-            setError(`Error deleting all notes: ${error}`);
-        });
+        deleteAllNotesMiddleware(setShowDialog, setList);
     }
 
-    const addNote = async () => {
-        clearMessages();
-        const noteToAdd: NoteToSave = {
-            owner_id: userId,
-            content: note,
-            tags: [],
-        };
-        await saveNote(noteToAdd, userId).then((newNote) => {
-            setList([...list, newNote]);
-            setSuccess("Note added successfully");
-        }).catch((error) => {
-            setError(`Error saving note: ${error}`);
-        }).finally(() => {
-            setNote('');
-        });
+    const addNewNote = async () => {
+        addNewNoteMiddleware(userId, content, list, setList).then(() => {
+            setContent('');
+        })
     }
 
     return (
@@ -166,7 +97,7 @@ export const NoteEditor = () => {
                     <input
                         type="text"
                         className="flex-1 px-4 py-3 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow transition placeholder-gray-400 bg-white text-gray-900"
-                        value={note}
+                        value={content}
                         onChange={handleChange}
                         placeholder="Write a new note..."
                         maxLength={300}
@@ -174,18 +105,14 @@ export const NoteEditor = () => {
                     />
                     <button
                         className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-semibold transition disabled:opacity-50"
-                        disabled={!note.length}
-                        onClick={addNote}
+                        disabled={!content.length}
+                        onClick={addNewNote}
                         title="Add note"
                     >
                         Add
                     </button>
                 </div>
-                <div className="w-full text-right text-xs text-gray-400 mt-1">{note.length}/300</div>
-                <div className="text-green-600 font-semibold mt-2 min-h-[1.5em]">
-                    {success}
-                </div>
-                <div className="text-red-600 font-semibold mt-2 min-h-[1.5em]">{error}</div>
+                <div className="w-full text-right text-xs text-gray-400 mt-1">{content.length}/300</div>
             </div>
             <div className="flex flex-col md:flex-row items-center gap-3 w-full mb-2">
                 <div className="flex flex-1 items-center gap-2 w-full">
@@ -193,7 +120,7 @@ export const NoteEditor = () => {
                         type="search"
                         className="flex-1 px-4 py-2 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm bg-white text-gray-900"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={handleChangeSearch}
                         placeholder="Search notes..."
                     />
                     <button
@@ -217,31 +144,28 @@ export const NoteEditor = () => {
                 )}
             </div>
             {showDialog && (
-                <ConfirmDialog 
+                <ConfirmDialog
                     onClose={() => setShowDialog(false)}
                     onConfirm={handleDeleteAllNotes}
                     title="Confirm Delete All Notes"
                     message="Are you sure you want to delete all notes? This action cannot be undone."
                 />
             )}
-            {loading && (
-                <Loading />
-            )}
             {
-                filterdList.map((item, index) => {
-                    return (
-                        <NoteItem
-                            key={item.id}
-                            note={item}
-                            index={index}
-                            handleGenerateTags={handleGenerateTags}
-                            handleSummaryChange={handleSummaryChange}
-                            handleNoteContentChange={handleNoteContentChange}
-                            handleDeleteNote={() => handleDeleteNote(index)}
-                            handleTagClick={handleTagClick}
-                        />
-                    )
-                })
+                memoizedFilteredList.map((item, index) =>
+                (
+                    <NoteItem
+                        key={item.id}
+                        note={item}
+                        index={index}
+                        handleGenerateTags={handleGenerateTags}
+                        handleSummaryChange={handleSummaryChange}
+                        handleNoteContentChange={handleNoteContentChange}
+                        handleDeleteNote={() => handleDeleteNote(index)}
+                        handleTagClick={handleTagClick}
+                    />
+                )
+                )
             }
         </div>)
 }

@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../../api/api";
 import { useUserStore } from "../../store/userStore";
-import { Loading } from "../navigation/Loading";
-
+import { loginMiddleware } from "../../service/login";
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const setToken = useUserStore(state => state.setToken);
-    const setUser = useUserStore(state => state.setUsername);
-    const setUserId = useUserStore(state => state.setUserId);
     const loading = useUserStore(state => state.loading);
     const navigate = useNavigate();
 
@@ -21,18 +16,17 @@ const Login: React.FC = () => {
             setError('Please enter both username and password.');
             return;
         }
-        login(username, password)
-            .then(data => {
-                setToken(data.access_token);
-                setUser(data.username);
-                setUserId(data.user_id);
-                navigate('/notes');
-            })
-            .catch(err => {
-                console.error('Login failed:', err);
-                setError('Invalid username or password.');
-            })
+        loginMiddleware(username, password, navigate);
+    };
+
+    const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
         setError('');
+        if (name === 'username') {
+            setUsername(value);
+        } else if (name === 'password') {
+            setPassword(value);
+        }
     };
 
     return (
@@ -43,10 +37,11 @@ const Login: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Username</label>
                         <input
+                            name="username"
                             disabled={loading}
                             type="text"
                             value={username}
-                            onChange={e => setUsername(e.target.value)}
+                            onChange={handleFieldChange}
                             className="text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                             autoComplete="username"
                         />
@@ -54,10 +49,11 @@ const Login: React.FC = () => {
                     <div>
                         <label className="block text-gray-700 font-medium mb-2">Password</label>
                         <input
+                            name="password"
                             disabled={loading}
                             type="password"
                             value={password}
-                            onChange={e => setPassword(e.target.value)}
+                            onChange={handleFieldChange}
                             className="text-gray-900 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
                             autoComplete="current-password"
                         />
@@ -71,9 +67,6 @@ const Login: React.FC = () => {
                         Login
                     </button>
                 </form>
-                {loading && (
-                    <Loading />
-                )}
                 <div className="mt-6 text-center">
                     <p className="text-gray-600">Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Register</a></p>
                 </div>

@@ -1,22 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Note } from '../types/types';
-
 
 interface UserState {
     token: string | null;
     username: string;
-    notes: Note[];
-    userId: number;
+    userId: number; 
+    loading: boolean;
+    success: string;
+    error: string;
     setToken: (token: string) => void;
     setUsername: (username: string) => void;
     setUserId: (userId: number) => void;
-    setNotes: (notes: Note[]) => void;
-    addNote: (note: Note) => void;
-    removeNote: (id: number) => void;
     clearUser: () => void;
-    loading: boolean;
     setLoading: (loading: boolean) => void;
+    setError: (error: string) => void;
+    setSuccess: (success: string) => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -27,13 +25,14 @@ export const useUserStore = create<UserState>()(
             userId: 0,
             notes: [],
             loading: false,
+            success: '',
+            error: '',
+            setSuccess: (success: string) => set({ success }),
+            setError: (error: string) => set({ error }),
             setToken: (token) => set({ token }),
             setUsername: (username) => set({ username }),
             setUserId: (userId) => set({ userId }),
-            setNotes: (notes) => set({ notes }),
-            addNote: (note) => set((state) => ({ notes: [...state.notes, note] })),
-            removeNote: (id) => set((state) => ({ notes: state.notes.filter((n) => n.id !== id) })),
-            clearUser: () => set({ token: '', username: '', notes: [] }),
+            clearUser: () => set({ token: '', username: '', userId: 0, loading: false, success: '', error: '' }),
             setLoading: (loading) => set(() => ({ loading }))
         }),
         {
@@ -42,7 +41,6 @@ export const useUserStore = create<UserState>()(
                 token: state.token,
                 username: state.username,
                 userId: state.userId,
-                notes: state.notes
             }),
         }
     )
