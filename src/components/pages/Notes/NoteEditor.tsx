@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { NoteItem } from "./NoteItem";
@@ -10,18 +10,24 @@ import { useMemo } from "react";
 
 export const NoteEditor = () => {
     const [list, setList] = useState<Note[]>([]);
-    const [, setFilteredList] = useState<Note[]>([]);
     const [search, setSearch] = useState<string>('');
+    const [tagSearchList, setTagSearchList] = useState<string[]>([]);
     const [content, setContent] = useState<string>('');
     const [showDialog, setShowDialog] = useState<boolean>(false);
     const userId = useUserStore(state => state.userId);
 
     const memoizedFilteredList = useMemo(() => {
-        console.log("Memoized filtering notes with search:", search);
-        return search.length
-            ? list.filter(item => item.content.toLowerCase().includes(search.toLowerCase()))
-            : list;
-    }, [search, list]);
+        if (tagSearchList.length) {
+            return list.filter(item =>
+                item.tags &&
+                tagSearchList.every((tag: string) => item.tags && item.tags.includes(tag))
+            );
+        } else {
+            return search.length
+                ? list.filter(item => item.content.toLowerCase().includes(search.toLowerCase()))
+                : list;
+        }
+    }, [search, list, tagSearchList]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -40,52 +46,59 @@ export const NoteEditor = () => {
         };
     }, []);
 
-    useEffect(() => {
-        console.log("Setting filtered list based on memoizedFilteredList:", memoizedFilteredList);
-    }, [memoizedFilteredList]);
+    const handleClearSearch = useCallback(() => {
+        setSearch('');
+        setTagSearchList([]);
+    }, []);
 
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setContent(e.target.value);
-    }
+    }, []);
 
-    const handleTagClick = (tag: string) => {
-        const filtered = list.filter(item => item.tags && item.tags.includes(tag));
-        setFilteredList(filtered);
-    }
-
-    const handleGenerateTags = (content: string, index: number) => {
-        generateTagsMiddleware(content, index, list, setList);
-    }
-
-    const handleSummaryChange =
-        (content: string, index: number) => {
-            summarizeNoteContentMiddleware(index, content, list, setList)
+    const handleTagClick = useCallback((tag: string) => {
+        if (!tagSearchList.includes(tag)) {
+            const currentTags = tagSearchList;
+            setTagSearchList([...currentTags, tag]);
         }
+    }, [tagSearchList]);
 
-    const handleChangeSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTagSearchClick = useCallback((tag: string) => {
+        const currentTags = tagSearchList.filter(t => t !== tag);
+        setTagSearchList(currentTags);
+    }, [tagSearchList]);
+
+    const handleGenerateTags = useCallback((content: string, index: number) => {
+        generateTagsMiddleware(content, index, list, setList);
+    }, [list]);
+
+    const handleSummaryChange = useCallback((content: string, index: number) => {
+        summarizeNoteContentMiddleware(index, content, list, setList)
+    }, [list]);
+
+    const handleChangeSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setTagSearchList(['']);
         setSearch(e.target.value);
-    }
+    }, []);
 
-    const handleNoteContentChange = (content: string, tags: string[], index: number) => {
+    const handleNoteContentChange = useCallback((content: string, tags: string[], index: number) => {
         updateNoteMiddleware(index, content, tags, userId, setList, list);
-    }
+    }, [userId, list, setList]);
 
-    const handleDeleteNote = (index: number) => {
+    const handleDeleteNote = useCallback((index: number) => {
         deleteNoteMiddleware(index, list, setList).then(() => {
             setContent('');
         })
-    }
+    }, [list]);
 
-    const handleDeleteAllNotes = async () => {
+    const handleDeleteAllNotes = useCallback(async () => {
         deleteAllNotesMiddleware(setShowDialog, setList);
-    }
+    }, []);
 
-    const addNewNote = async () => {
+    const addNewNote = useCallback(async () => {
         addNewNoteMiddleware(userId, content, list, setList).then(() => {
             setContent('');
         })
-    }
+    }, [userId, content, list]);
 
     return (
         <div className="flex flex-col items-center justify-center gap-4 mt-8 w-full md:h-full m-auto md:max-w-2xl">
@@ -114,8 +127,8 @@ export const NoteEditor = () => {
                 </div>
                 <div className="w-full text-right text-xs text-gray-400 mt-1">{content.length}/300</div>
             </div>
-            <div className="flex flex-col md:flex-row items-center gap-3 w-full mb-2">
-                <div className="flex flex-1 items-center gap-2 w-full">
+            <div className="flex md:flex-col items-center gap-3 w-full mb-2">
+                <div className="flex flex-row flex-1 items-center gap-2 w-full">
                     <input
                         type="search"
                         className="flex-1 px-4 py-2 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-sm bg-white text-gray-900"
@@ -124,11 +137,24 @@ export const NoteEditor = () => {
                         placeholder="Search notes..."
                     />
                     <button
-                        onClick={() => setFilteredList(list)}
+                        onClick={handleClearSearch}
                         className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 font-medium transition"
                     >
                         Clear
                     </button>
+                </div>
+                <div className="flex flex-row items-center gap-2">
+                    {tagSearchList && tagSearchList.length > 0 && (
+                        tagSearchList.map((tag, tagIndex) => (
+                            <span
+                                onClick={() => handleTagSearchClick(tag)}
+                                key={`${tagIndex}-${tag}`}
+                                className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 cursor-pointer transition font-medium"
+                            >
+                                {tag}
+                            </span>
+                        ))
+                    )}
                 </div>
             </div>
             <div className="flex justify-end w-full mb-2">
@@ -161,7 +187,7 @@ export const NoteEditor = () => {
                         handleGenerateTags={handleGenerateTags}
                         handleSummaryChange={handleSummaryChange}
                         handleNoteContentChange={handleNoteContentChange}
-                        handleDeleteNote={() => handleDeleteNote(index)}
+                        handleDeleteNote={handleDeleteNote}
                         handleTagClick={handleTagClick}
                     />
                 )

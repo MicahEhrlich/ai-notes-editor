@@ -16,7 +16,6 @@ type NoteProps = {
 };
 
 const NoteItemComponent = ({ note, index, handleGenerateTags, handleSummaryChange, handleNoteContentChange, handleDeleteNote, handleTagClick }: NoteProps) => {
-    console.log("Rendering NoteItemComponent for note:", note.id, note.content);
     const [content, setContent] = useState(note.content);
     const [canEdit, setCanEdit] = useState(false);
     const loading = useUserStore(state => state.loading);
