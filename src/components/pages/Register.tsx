@@ -41,11 +41,7 @@ const Register: React.FC = () => {
         }
         else {
             setError('');
-            registerUserMiddleware(username, password, navigate).then(() => {
-                setUsername('');
-                setPassword('');
-                setConfirmPassword('');
-            })
+            registerUserMiddleware(username, password, navigate)
         }
     };
 

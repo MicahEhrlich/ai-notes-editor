@@ -6,7 +6,7 @@ export async function registerUserMiddleware(username: string, password: string,
     const setSuccess = useUserStore.getState().setSuccess;
 
     try {
-        registerUser(username, password);
+        await registerUser(username, password);
         setSuccess('Registration successful! Redirecting to login...');
         setError('');
         setTimeout(() => {
