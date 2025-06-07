@@ -64,6 +64,9 @@ export async function deleteAllNotesMiddleware(setShowDialog: (show: boolean) =>
 export async function generateTagsMiddleware(content: string, index: number, list: Note[], setList: (notes: Note[]) => void) {
     try {
         clearMessages();
+        if (!content || content.trim() === "") {
+            throw Error("Content is empty, cannot generate tags");
+        }
         const tags = await generateTags(content)
         if (!tags || tags.length === 0) {
             throw Error("No tags generated from the content");
