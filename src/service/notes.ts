@@ -114,6 +114,9 @@ export async function updateNoteMiddleware(index: number, content: string, tags:
     try {
         clearMessages();
         const updatedList = [...list];
+        if (!content || content.trim() === "") {
+            throw Error("Content is empty, cannot update note");
+        }
         updatedList[index].content = content;
         updatedList[index].tags = tags;
         setList(updatedList);
