@@ -1,3 +1,4 @@
+import LogRocket from 'logrocket';
 import { login } from '../api/api';
 import { useUserStore } from '../store/userStore';
 
@@ -10,7 +11,7 @@ export async function loginMiddleware(
     const setUsername = useUserStore.getState().setUsername;
     const setUserId = useUserStore.getState().setUserId;
     const setError = useUserStore.getState().setError;
-    
+
     try {
         if (!username || !password) {
             setError('Please enter both username and password.');
@@ -20,6 +21,10 @@ export async function loginMiddleware(
         setToken(data.access_token);
         setUsername(data.username);
         setUserId(data.user_id);
+        LogRocket.identify(data.user_id.toString(), {
+            userame: data.username,
+        });
+
         setError('');
         navigate('/notes');
     } catch (err) {

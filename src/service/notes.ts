@@ -65,6 +65,9 @@ export async function generateTagsMiddleware(content: string, index: number, lis
     try {
         clearMessages();
         const tags = await generateTags(content)
+        if (!tags || tags.length === 0) {
+            throw Error("No tags generated from the content");
+        }
         const updatedList = [...list];
         const generatedTags = tags.split(',').map(tag => tag.trim());
         const updatedNote: Note = {
