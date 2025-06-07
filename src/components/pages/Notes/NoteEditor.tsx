@@ -76,7 +76,7 @@ export const NoteEditor = () => {
     }, [list]);
 
     const handleChangeSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setTagSearchList(['']);
+        setTagSearchList([]);
         setSearch(e.target.value);
     }, []);
 
